@@ -1,0 +1,1426 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+
+local parent
+if gethui then parent = gethui()
+elseif game:GetService("CoreGui") then parent = game:GetService("CoreGui")
+else parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+if parent:FindFirstChild("JikaiUI") then parent.JikaiUI:Destroy() end
+if parent:FindFirstChild("JikaiRageIndicator") then parent.JikaiRageIndicator:Destroy() end
+if parent:FindFirstChild("JikaiYokaiCrosshair") then parent.JikaiYokaiCrosshair:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "JikaiUI"
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 999999
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = parent
+
+_G.JikaiRage = {
+    text = "레이지 작동중",
+    transparency = 0,
+    textSize = 13,
+    neon = true,
+    rainbow = true,
+    solidColor = Color3.fromRGB(255, 255, 255),
+    showIndicator = true,
+}
+
+_G.JikaiConfigs = {}
+
+local YokaiText = "요카이"
+
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 460, 0, 310)
+main.Position = UDim2.new(0.5, -230, 0.5, -155)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+main.BorderSizePixel = 0
+main.Visible = false
+main.Parent = gui
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(60, 60, 70)
+mainStroke.Thickness = 1
+mainStroke.Parent = main
+
+local sidebar = Instance.new("Frame")
+sidebar.Size = UDim2.new(0, 40, 1, 0)
+sidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+sidebar.BorderSizePixel = 0
+sidebar.Parent = main
+
+local sideLayout = Instance.new("UIListLayout")
+sideLayout.Padding = UDim.new(0, 6)
+sideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+sideLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+sideLayout.Parent = sidebar
+
+local sideIcons = {"🔫", "🎯", "📡", "☀️", "⚙️", "💾"}
+local sideButtons = {}
+
+for i, icon in ipairs(sideIcons) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 28, 0, 28)
+    btn.BackgroundColor3 = (i == 1) and Color3.fromRGB(40, 40, 50) or Color3.fromRGB(20, 20, 25)
+    btn.Text = icon
+    btn.TextSize = 14
+    btn.BorderSizePixel = 0
+    btn.Font = Enum.Font.Gotham
+    btn.Parent = sidebar
+    
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Color = Color3.fromRGB(60, 60, 70)
+    btnStroke.Thickness = 1
+    btnStroke.Parent = btn
+    
+    table.insert(sideButtons, btn)
+end
+
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, -40, 0, 26)
+topBar.Position = UDim2.new(0, 40, 0, 0)
+topBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+topBar.BorderSizePixel = 0
+topBar.Parent = main
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -10, 1, 0)
+title.Position = UDim2.new(0, 8, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "script jikai"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 13
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -50, 1, -35)
+scroll.Position = UDim2.new(0, 45, 0, 31)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 3
+scroll.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 90)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.Parent = main
+
+local contentLayout = Instance.new("UIListLayout")
+contentLayout.Padding = UDim.new(0, 10)
+contentLayout.Parent = scroll
+
+local function createSection(titleText, height)
+    local section = Instance.new("Frame")
+    section.Size = UDim2.new(1, -8, 0, height or 80)
+    section.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    section.BorderSizePixel = 0
+    section.Parent = scroll
+
+    local secStroke = Instance.new("UIStroke")
+    secStroke.Color = Color3.fromRGB(50, 50, 60)
+    secStroke.Thickness = 1
+    secStroke.Parent = section
+
+    local secTitle = Instance.new("TextLabel")
+    secTitle.Size = UDim2.new(1, -8, 0, 20)
+    secTitle.Position = UDim2.new(0, 8, 0, 0)
+    secTitle.BackgroundTransparency = 1
+    secTitle.Text = titleText
+    secTitle.TextColor3 = Color3.fromRGB(220, 220, 230)
+    secTitle.TextSize = 12
+    secTitle.Font = Enum.Font.GothamBold
+    secTitle.TextXAlignment = Enum.TextXAlignment.Left
+    secTitle.Parent = section
+
+    local itemLayout = Instance.new("UIListLayout")
+    itemLayout.Padding = UDim.new(0, 3)
+    itemLayout.Parent = section
+    
+    local pad = Instance.new("UIPadding")
+    pad.PaddingTop = UDim.new(0, 22)
+    pad.PaddingLeft = UDim.new(0, 8)
+    pad.PaddingRight = UDim.new(0, 8)
+    pad.Parent = section
+
+    return section
+end
+
+local function createToggle(parent, text, defaultState, callback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 18)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -25, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(190, 190, 200)
+    label.TextSize = 11
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = row
+
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0, 12, 0, 12)
+    toggle.Position = UDim2.new(1, -12, 0.5, -6)
+    toggle.BackgroundColor3 = defaultState and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(60, 60, 70)
+    toggle.Text = ""
+    toggle.BorderSizePixel = 0
+    toggle.Parent = row
+
+    local tStroke = Instance.new("UIStroke")
+    tStroke.Color = Color3.fromRGB(40, 40, 50)
+    tStroke.Thickness = 1
+    tStroke.Parent = toggle
+
+    local state = defaultState
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        toggle.BackgroundColor3 = state and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(60, 60, 70)
+        pcall(function() if callback then callback(state) end end)
+    end)
+end
+
+local function createSlider(parent, text, defaultPercent, callback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 25)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 0, 12)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(190, 190, 200)
+    label.TextSize = 11
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = row
+
+    local percentLabel = Instance.new("TextLabel")
+    percentLabel.Size = UDim2.new(0.3, 0, 0, 12)
+    percentLabel.Position = UDim2.new(0.7, 0, 0, 0)
+    percentLabel.BackgroundTransparency = 1
+    percentLabel.Text = defaultPercent .. "%"
+    percentLabel.TextColor3 = Color3.fromRGB(0, 180, 255)
+    percentLabel.TextSize = 10
+    percentLabel.Font = Enum.Font.GothamBold
+    percentLabel.TextXAlignment = Enum.TextXAlignment.Right
+    percentLabel.Parent = row
+
+    local track = Instance.new("Frame")
+    track.Size = UDim2.new(1, 0, 0, 3)
+    track.Position = UDim2.new(0, 0, 0, 17)
+    track.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    track.BorderSizePixel = 0
+    track.Parent = row
+
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(defaultPercent / 100, 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+    fill.BorderSizePixel = 0
+    fill.Parent = track
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 5, 0)
+    btn.Position = UDim2.new(0, 0, -2, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = ""
+    btn.Parent = track
+
+    local dragging = false
+    local function update(input)
+        local rel = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+        local val = math.floor(rel * 100)
+        fill.Size = UDim2.new(rel, 0, 1, 0)
+        percentLabel.Text = val .. "%"
+        pcall(function() if callback then callback(val) end end)
+    end
+
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            update(input)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+local function createColorPicker(parent, color)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 16)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
+
+    local box = Instance.new("Frame")
+    box.Size = UDim2.new(0, 10, 0, 10)
+    box.Position = UDim2.new(1, -10, 0.5, -5)
+    box.BackgroundColor3 = color
+    box.BorderSizePixel = 0
+    box.Parent = row
+    
+    local bStroke = Instance.new("UIStroke")
+    bStroke.Color = Color3.fromRGB(255, 255, 255, 100)
+    bStroke.Thickness = 1
+    bStroke.Parent = box
+end
+
+local indicatorGui = Instance.new("ScreenGui")
+indicatorGui.Name = "JikaiRageIndicator"
+indicatorGui.ResetOnSpawn = false
+indicatorGui.IgnoreGuiInset = true
+indicatorGui.DisplayOrder = 999998
+indicatorGui.Enabled = false
+indicatorGui.Parent = parent
+
+local CrosshairContainer = Instance.new("Frame")
+CrosshairContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+CrosshairContainer.Position = UDim2.new(0.5, 0, 0.5, -35)
+CrosshairContainer.Size = UDim2.new(0, 40, 0, 40)
+CrosshairContainer.BackgroundTransparency = 1
+CrosshairContainer.Parent = indicatorGui
+
+local lines = {
+    {Size = UDim2.new(0, 8, 0, 2), DefaultPos = UDim2.new(0, 0, 0.5, -1)},
+    {Size = UDim2.new(0, 8, 0, 2), DefaultPos = UDim2.new(1, -8, 0.5, -1)},
+    {Size = UDim2.new(0, 2, 0, 8), DefaultPos = UDim2.new(0.5, -1, 0, 0)},
+    {Size = UDim2.new(0, 2, 0, 8), DefaultPos = UDim2.new(0.5, -1, 1, -8)}
+}
+local crosshairLines = {}
+for _, info in ipairs(lines) do
+    local line = Instance.new("Frame")
+    line.Size = info.Size
+    line.Position = info.DefaultPos
+    line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    line.BorderSizePixel = 0
+    line.Parent = CrosshairContainer
+    table.insert(crosshairLines, {Line = line, DefaultPos = info.DefaultPos})
+end
+
+local RageGlowLabel = Instance.new("TextLabel")
+RageGlowLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+RageGlowLabel.Position = UDim2.new(0.5, 0, 0.5, 25)
+RageGlowLabel.Size = UDim2.new(0, 300, 0, 25)
+RageGlowLabel.BackgroundTransparency = 1
+RageGlowLabel.Text = _G.JikaiRage.text
+RageGlowLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+RageGlowLabel.TextTransparency = 0.6
+RageGlowLabel.Font = Enum.Font.GothamBold
+RageGlowLabel.TextSize = _G.JikaiRage.textSize + 4
+RageGlowLabel.TextXAlignment = Enum.TextXAlignment.Center
+RageGlowLabel.ZIndex = 1
+RageGlowLabel.Parent = indicatorGui
+
+local RageTextLabel = Instance.new("TextLabel")
+RageTextLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+RageTextLabel.Position = UDim2.new(0.5, 0, 0.5, 25)
+RageTextLabel.Size = UDim2.new(0, 300, 0, 25)
+RageTextLabel.BackgroundTransparency = 1
+RageTextLabel.Text = _G.JikaiRage.text
+RageTextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+RageTextLabel.TextStrokeTransparency = 0
+RageTextLabel.Font = Enum.Font.GothamBold
+RageTextLabel.TextSize = _G.JikaiRage.textSize
+RageTextLabel.TextXAlignment = Enum.TextXAlignment.Center
+RageTextLabel.ZIndex = 2
+RageTextLabel.Parent = indicatorGui
+
+local YokaiGui = nil
+local YokaiContainer = nil
+local YokaiLines = {}
+local YokaiTextLabel = nil
+
+local function createYokaiCrosshair()
+    if YokaiGui then return end
+    
+    YokaiGui = Instance.new("ScreenGui")
+    YokaiGui.Name = "JikaiYokaiCrosshair"
+    YokaiGui.ResetOnSpawn = false
+    YokaiGui.IgnoreGuiInset = true
+    YokaiGui.DisplayOrder = 999997
+    YokaiGui.Parent = parent
+    
+    YokaiContainer = Instance.new("Frame")
+    YokaiContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    YokaiContainer.Position = UDim2.new(0.5, 0, 0.5, -35)
+    YokaiContainer.Size = UDim2.new(0, 40, 0, 40)
+    YokaiContainer.BackgroundTransparency = 1
+    YokaiContainer.Parent = YokaiGui
+    
+    local yLines = {
+        {Size = UDim2.new(0, 8, 0, 2), DefaultPos = UDim2.new(0, 0, 0.5, -1)},
+        {Size = UDim2.new(0, 8, 0, 2), DefaultPos = UDim2.new(1, -8, 0.5, -1)},
+        {Size = UDim2.new(0, 2, 0, 8), DefaultPos = UDim2.new(0.5, -1, 0, 0)},
+        {Size = UDim2.new(0, 2, 0, 8), DefaultPos = UDim2.new(0.5, -1, 1, -8)}
+    }
+    YokaiLines = {}
+    for _, info in ipairs(yLines) do
+        local line = Instance.new("Frame")
+        line.Size = info.Size
+        line.Position = info.DefaultPos
+        line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        line.BorderSizePixel = 0
+        line.Parent = YokaiContainer
+        table.insert(YokaiLines, {Line = line, DefaultPos = info.DefaultPos})
+    end
+    
+    YokaiTextLabel = Instance.new("TextLabel")
+    YokaiTextLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    YokaiTextLabel.Position = UDim2.new(0.5, 0, 0.5, 25)
+    YokaiTextLabel.Size = UDim2.new(0, 200, 0, 25)
+    YokaiTextLabel.BackgroundTransparency = 1
+    YokaiTextLabel.Text = YokaiText
+    YokaiTextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    YokaiTextLabel.TextStrokeTransparency = 0
+    YokaiTextLabel.Font = Enum.Font.GothamBold
+    YokaiTextLabel.TextSize = 13
+    YokaiTextLabel.TextXAlignment = Enum.TextXAlignment.Center
+    YokaiTextLabel.Parent = YokaiGui
+end
+
+local function destroyYokaiCrosshair()
+    if YokaiGui then
+        YokaiGui:Destroy()
+        YokaiGui = nil
+        YokaiContainer = nil
+        YokaiLines = {}
+        YokaiTextLabel = nil
+    end
+end
+
+local yokaiHue, yokaiRotAngle = 0, 0
+RunService.RenderStepped:Connect(function()
+    if not YokaiGui or not YokaiContainer then return end
+    
+    yokaiHue = (yokaiHue + 2) % 360
+    local rainbowColor = Color3.fromHSV(yokaiHue / 360, 1, 1)
+
+    for _, item in ipairs(YokaiLines) do
+        item.Line.BackgroundColor3 = rainbowColor
+    end
+    if YokaiTextLabel then YokaiTextLabel.TextColor3 = rainbowColor end
+
+    yokaiRotAngle = (yokaiRotAngle + 4) % 360
+    YokaiContainer.Rotation = yokaiRotAngle
+
+    local timeVal = tick() * 5
+    local pulse = (math.sin(timeVal) + 1) * 0.5
+    if #YokaiLines >= 4 then
+        YokaiLines[1].Line.Position = UDim2.new(0, math.floor(3 + pulse * 6), 0.5, -1)
+        YokaiLines[2].Line.Position = UDim2.new(1, math.floor(-11 - pulse * 6), 0.5, -1)
+        YokaiLines[3].Line.Position = UDim2.new(0.5, -1, 0, math.floor(3 + pulse * 6))
+        YokaiLines[4].Line.Position = UDim2.new(0.5, -1, 1, math.floor(-11 - pulse * 6))
+    end
+end)
+
+local AuraEnabled = false
+local AuraConnection = nil
+local AuraHue = 0
+local auraParts = {}
+local auraOrbitAngle = 0
+
+local AURA_ORBIT_COUNT = 6
+
+local function clearAura()
+    for _, obj in ipairs(auraParts) do
+        pcall(function() obj:Destroy() end)
+    end
+    auraParts = {}
+end
+
+local function createAuraPart(size)
+    local p = Instance.new("Part")
+    p.Size = size
+    p.Anchored = true
+    p.CanCollide = false
+    p.CanQuery = false
+    p.CanTouch = false
+    p.Material = Enum.Material.Neon
+    p.Shape = Enum.PartType.Ball
+    p.TopSurface = Enum.SurfaceType.Smooth
+    p.BottomSurface = Enum.SurfaceType.Smooth
+    p.Parent = workspace
+    return p
+end
+
+local function startAura()
+    if AuraConnection then AuraConnection:Disconnect() end
+    AuraEnabled = true
+    clearAura()
+    
+    auraParts.orbitBalls = {}
+    for i = 1, AURA_ORBIT_COUNT do
+        local ball = createAuraPart(Vector3.new(0.6, 0.6, 0.6))
+        ball.Transparency = 0.1
+        table.insert(auraParts.orbitBalls, {
+            part = ball,
+            angleOffset = (i / AURA_ORBIT_COUNT) * math.pi * 2,
+            heightOffset = (i % 2 == 0) and 1 or -1,
+        })
+        table.insert(auraParts, ball)
+    end
+    
+    local floor = Instance.new("Part")
+    floor.Name = "JikaiAuraFloor"
+    floor.Shape = Enum.PartType.Cylinder
+    floor.Size = Vector3.new(0.2, 8, 8)
+    floor.Anchored = true
+    floor.CanCollide = false
+    floor.CanQuery = false
+    floor.CanTouch = false
+    floor.Material = Enum.Material.Neon
+    floor.Transparency = 0.2
+    floor.Parent = workspace
+    auraParts.floorCircle = floor
+    table.insert(auraParts, floor)
+    
+    local floor2 = Instance.new("Part")
+    floor2.Name = "JikaiAuraFloor2"
+    floor2.Shape = Enum.PartType.Cylinder
+    floor2.Size = Vector3.new(0.15, 5, 5)
+    floor2.Anchored = true
+    floor2.CanCollide = false
+    floor2.CanQuery = false
+    floor2.CanTouch = false
+    floor2.Material = Enum.Material.Neon
+    floor2.Transparency = 0.3
+    floor2.Parent = workspace
+    auraParts.floorCircle2 = floor2
+    table.insert(auraParts, floor2)
+    
+    auraParts.weaponBalls = {}
+    
+    AuraConnection = RunService.RenderStepped:Connect(function(dt)
+        if not AuraEnabled then return end
+        
+        AuraHue = (AuraHue + dt * 200) % 360
+        auraOrbitAngle = auraOrbitAngle + dt * 4
+        local rainbow = Color3.fromHSV(AuraHue / 360, 1, 1)
+        local rainbow2 = Color3.fromHSV(((AuraHue + 120) % 360) / 360, 1, 1)
+        
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        if auraParts.orbitBalls then
+            for i, data in ipairs(auraParts.orbitBalls) do
+                local ball = data.part
+                if ball and ball.Parent then
+                    local angle = auraOrbitAngle + data.angleOffset
+                    local radius = 3
+                    local offset = Vector3.new(
+                        math.cos(angle) * radius,
+                        data.heightOffset * 1.5 + math.sin(angle * 2) * 0.5,
+                        math.sin(angle) * radius
+                    )
+                    ball.CFrame = CFrame.new(hrp.Position + offset)
+                    local hue = ((AuraHue + i * 40) % 360) / 360
+                    ball.Color = Color3.fromHSV(hue, 1, 1)
+                end
+            end
+        end
+        
+        if auraParts.floorCircle and auraParts.floorCircle.Parent then
+            auraParts.floorCircle.CFrame = CFrame.new(hrp.Position - Vector3.new(0, 3, 0))
+                * CFrame.Angles(0, math.rad(AuraHue * 2), math.rad(90))
+            auraParts.floorCircle.Color = rainbow
+        end
+        if auraParts.floorCircle2 and auraParts.floorCircle2.Parent then
+            auraParts.floorCircle2.CFrame = CFrame.new(hrp.Position - Vector3.new(0, 2.8, 0))
+                * CFrame.Angles(0, math.rad(-AuraHue * 3), math.rad(90))
+            auraParts.floorCircle2.Color = rainbow2
+        end
+        
+        local tool = char:FindFirstChildOfClass("Tool")
+        local handle = tool and tool:FindFirstChild("Handle")
+        
+        if handle then
+            if #auraParts.weaponBalls < 3 then
+                for i = 1, 3 do
+                    local wb = createAuraPart(Vector3.new(0.4, 0.4, 0.4))
+                    wb.Transparency = 0.1
+                    table.insert(auraParts.weaponBalls, wb)
+                    table.insert(auraParts, wb)
+                end
+            end
+            for i, wb in ipairs(auraParts.weaponBalls) do
+                if wb and wb.Parent then
+                    local angle = auraOrbitAngle * 1.5 + (i / 3) * math.pi * 2
+                    local offset = Vector3.new(
+                        math.cos(angle) * 1.2,
+                        math.sin(angle * 3) * 0.5,
+                        math.sin(angle) * 1.2
+                    )
+                    wb.CFrame = CFrame.new(handle.Position + offset)
+                    local hue = ((AuraHue + i * 60) % 360) / 360
+                    wb.Color = Color3.fromHSV(hue, 1, 1)
+                end
+            end
+        else
+            if auraParts.weaponBalls then
+                for _, wb in ipairs(auraParts.weaponBalls) do
+                    if wb and wb.Parent then
+                        wb.CFrame = CFrame.new(0, -500, 0)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopAura()
+    AuraEnabled = false
+    if AuraConnection then AuraConnection:Disconnect(); AuraConnection = nil end
+    clearAura()
+end
+
+local BaitEnabled = false
+local BaitConnection = nil
+local BaitMode = "random"
+
+local function startBait()
+    if BaitConnection then BaitConnection:Disconnect() end
+    BaitEnabled = true
+    
+    BaitConnection = RunService.Heartbeat:Connect(function()
+        if not BaitEnabled then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        local newPos
+        
+        if BaitMode == "random" then
+            newPos = hrp.Position + Vector3.new(
+                math.random(-25, 25),
+                math.random(-8, 12),
+                math.random(-25, 25)
+            )
+        elseif BaitMode == "nearEnemy" then
+            local closest, shortest = nil, math.huge
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character then
+                    local eHrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                    if eHrp then
+                        local d = (eHrp.Position - hrp.Position).Magnitude
+                        if d < shortest then shortest = d; closest = eHrp end
+                    end
+                end
+            end
+            if closest then
+                newPos = closest.Position + Vector3.new(
+                    math.random(-8, 8), 0, math.random(-8, 8)
+                )
+            else
+                newPos = hrp.Position + Vector3.new(math.random(-15,15), 5, math.random(-15,15))
+            end
+        elseif BaitMode == "nearEdge" then
+            newPos = hrp.Position + Vector3.new(
+                math.random(-40, 40),
+                math.random(-3, 20),
+                math.random(-40, 40)
+            )
+        end
+        
+        hrp.CFrame = CFrame.new(newPos)
+        hrp.Velocity = Vector3.new(0, 0, 0)
+    end)
+end
+
+local function stopBait()
+    BaitEnabled = false
+    if BaitConnection then
+        BaitConnection:Disconnect()
+        BaitConnection = nil
+    end
+end
+
+local RageConnection = nil
+local RageEnabled = false
+
+local function getNearestPlayer()
+    local closest, shortest = nil, math.huge
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+    local myPos = myChar.HumanoidRootPart.Position
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 then
+                local dist = (hrp.Position - myPos).Magnitude
+                if dist < shortest then shortest = dist; closest = plr end
+            end
+        end
+    end
+    return closest
+end
+
+local function startRage()
+    if RageConnection then RageConnection:Disconnect() end
+    RageEnabled = true
+    if _G.JikaiRage.showIndicator then
+        indicatorGui.Enabled = true
+    end
+    local myChar = LocalPlayer.Character
+    if myChar then
+        local hum = myChar:FindFirstChildOfClass("Humanoid")
+        if hum then hum.AutoRotate = false end
+    end
+    RageConnection = RunService.RenderStepped:Connect(function()
+        if not RageEnabled then return end
+        local target = getNearestPlayer()
+        if not target or not target.Character then return end
+        local head = target.Character:FindFirstChild("Head")
+        local myChar = LocalPlayer.Character
+        if not head or not myChar then return end
+        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+        if not myHRP then return end
+        local angle = tick() * 20
+        local radius = 3
+        myHRP.CFrame = CFrame.new(head.Position + Vector3.new(math.cos(angle)*radius, 0, math.sin(angle)*radius), head.Position)
+        myHRP.Velocity = Vector3.new(0, 0, 0)
+        local tool = myChar:FindFirstChildOfClass("Tool")
+        if tool then pcall(function() tool:Activate() end) end
+        pcall(function()
+            game:GetService("VirtualUser"):CaptureController()
+            game:GetService("VirtualUser"):ClickButton1(Vector2.new())
+        end)
+    end)
+end
+
+local function stopRage()
+    RageEnabled = false
+    indicatorGui.Enabled = false
+    if RageConnection then RageConnection:Disconnect(); RageConnection = nil end
+    local myChar = LocalPlayer.Character
+    if myChar then
+        local hum = myChar:FindFirstChildOfClass("Humanoid")
+        if hum then hum.AutoRotate = true end
+    end
+end
+
+local rageHue, rotAngle = 0, 0
+RunService.RenderStepped:Connect(function()
+    if not indicatorGui.Enabled then return end
+    
+    local cfg = _G.JikaiRage
+    local baseColor
+    
+    if cfg.rainbow then
+        rageHue = (rageHue + 2) % 360
+        baseColor = Color3.fromHSV(rageHue / 360, 1, 1)
+    else
+        baseColor = cfg.solidColor
+    end
+
+    for _, item in ipairs(crosshairLines) do
+        item.Line.BackgroundColor3 = baseColor
+        item.Line.BackgroundTransparency = cfg.transparency
+    end
+    
+    RageTextLabel.TextColor3 = baseColor
+    RageTextLabel.TextTransparency = cfg.transparency
+    RageTextLabel.TextSize = cfg.textSize
+    
+    RageGlowLabel.TextColor3 = baseColor
+    RageGlowLabel.Text = cfg.text
+    RageGlowLabel.TextSize = cfg.textSize + 4
+    if cfg.neon then
+        RageGlowLabel.TextTransparency = math.min(cfg.transparency + 0.5, 1)
+    else
+        RageGlowLabel.TextTransparency = 1
+    end
+    RageTextLabel.Text = cfg.text
+    RageTextLabel.TextStrokeTransparency = cfg.neon and 0 or 1
+
+    rotAngle = (rotAngle + 4) % 360
+    CrosshairContainer.Rotation = rotAngle
+
+    local timeVal = tick() * 5
+    local pulse = (math.sin(timeVal) + 1) * 0.5
+    crosshairLines[1].Line.Position = UDim2.new(0, math.floor(3 + pulse * 6), 0.5, -1)
+    crosshairLines[2].Line.Position = UDim2.new(1, math.floor(-11 - pulse * 6), 0.5, -1)
+    crosshairLines[3].Line.Position = UDim2.new(0.5, -1, 0, math.floor(3 + pulse * 6))
+    crosshairLines[4].Line.Position = UDim2.new(0.5, -1, 1, math.floor(-11 - pulse * 6))
+end)
+
+local topBarHue = 0
+RunService.RenderStepped:Connect(function(dt)
+    topBarHue = (topBarHue + dt * 100) % 360
+    topBar.BackgroundColor3 = Color3.fromHSV(topBarHue / 360, 1, 1)
+end)
+
+local configListScroll = nil
+local refreshConfigList = function() end
+
+local tabContents = {}
+
+tabContents[1] = function()
+    local sec1 = createSection("플레이어 표시", 100)
+    createToggle(sec1, "휴면 상태", false)
+    createToggle(sec1, "박스 표시", false)
+    createToggle(sec1, "체력바", false)
+    createToggle(sec1, "이름", false)
+
+    local sec2 = createSection("레이지 / 전투", 100)
+    createToggle(sec2, "레이지 (스핀봇 + 공격)", false, function(on)
+        if on then startRage() else stopRage() end
+    end)
+    createSlider(sec2, "회전 속도", 50, function(v) end)
+    createSlider(sec2, "공격 범위", 100, function(v) end)
+
+    local sec3 = createSection("베이팅 (핵 대응)", 140)
+
+    createToggle(sec3, "베이팅 (적 강제 낙사)", false, function(on)
+        if on then startBait() else stopBait() end
+    end)
+
+    local modeRow = Instance.new("Frame")
+    modeRow.Size = UDim2.new(1, 0, 0, 22)
+    modeRow.BackgroundTransparency = 1
+    modeRow.Parent = sec3
+
+    local modeLabel = Instance.new("TextLabel")
+    modeLabel.Size = UDim2.new(0.4, 0, 1, 0)
+    modeLabel.BackgroundTransparency = 1
+    modeLabel.Text = "베이팅 모드:"
+    modeLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
+    modeLabel.TextSize = 11
+    modeLabel.Font = Enum.Font.Gotham
+    modeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    modeLabel.Parent = modeRow
+
+    local modes = {"랜덤", "적 근처", "절벽 근처"}
+    local modeKeys = {"random", "nearEnemy", "nearEdge"}
+    local currentModeIdx = 1
+
+    local modeBtn = Instance.new("TextButton")
+    modeBtn.Size = UDim2.new(0.6, 0, 1, 0)
+    modeBtn.Position = UDim2.new(0.4, 0, 0, 0)
+    modeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    modeBtn.Text = modes[1]
+    modeBtn.TextColor3 = Color3.fromRGB(0, 180, 255)
+    modeBtn.TextSize = 11
+    modeBtn.Font = Enum.Font.GothamBold
+    modeBtn.BorderSizePixel = 0
+    modeBtn.Parent = modeRow
+
+    local mbStroke = Instance.new("UIStroke")
+    mbStroke.Color = Color3.fromRGB(60, 60, 70)
+    mbStroke.Thickness = 1
+    mbStroke.Parent = modeBtn
+
+    modeBtn.MouseButton1Click:Connect(function()
+        currentModeIdx = currentModeIdx + 1
+        if currentModeIdx > #modes then currentModeIdx = 1 end
+        modeBtn.Text = modes[currentModeIdx]
+        BaitMode = modeKeys[currentModeIdx]
+    end)
+
+    local infoRow = Instance.new("Frame")
+    infoRow.Size = UDim2.new(1, 0, 0, 40)
+    infoRow.BackgroundTransparency = 1
+    infoRow.Parent = sec3
+
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Size = UDim2.new(1, 0, 1, 0)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Text = "상대 핵 유저가 널 따라오면\n이리저리 순간이동해서 낙사시킴!"
+    infoLabel.TextColor3 = Color3.fromRGB(160, 160, 170)
+    infoLabel.TextSize = 10
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextWrapped = true
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+    infoLabel.Parent = infoRow
+end
+
+tabContents[2] = function()
+    local sec1 = createSection("기타 표시", 100)
+    createToggle(sec1, "부정확도 오버레이", false)
+    createToggle(sec1, "반동 오버레이", false)
+    createToggle(sec1, "조준선", false)
+    createToggle(sec1, "폭탄", false)
+    createToggle(sec1, "수류탄 궤적", false)
+
+    local secYokai = createSection("요카이 조준선", 95)
+
+    createToggle(secYokai, "요카이 조준선", false, function(on)
+        if on then
+            createYokaiCrosshair()
+        else
+            destroyYokaiCrosshair()
+        end
+    end)
+
+    local yokaiTextRow = Instance.new("Frame")
+    yokaiTextRow.Size = UDim2.new(1, 0, 0, 22)
+    yokaiTextRow.BackgroundTransparency = 1
+    yokaiTextRow.Parent = secYokai
+
+    local yokaiLabel = Instance.new("TextLabel")
+    yokaiLabel.Size = UDim2.new(0.35, 0, 1, 0)
+    yokaiLabel.BackgroundTransparency = 1
+    yokaiLabel.Text = "글자:"
+    yokaiLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
+    yokaiLabel.TextSize = 11
+    yokaiLabel.Font = Enum.Font.Gotham
+    yokaiLabel.TextXAlignment = Enum.TextXAlignment.Left
+    yokaiLabel.Parent = yokaiTextRow
+
+    local yokaiTextBox = Instance.new("TextBox")
+    yokaiTextBox.Size = UDim2.new(0.65, 0, 1, 0)
+    yokaiTextBox.Position = UDim2.new(0.35, 0, 0, 0)
+    yokaiTextBox.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    yokaiTextBox.BorderSizePixel = 0
+    yokaiTextBox.Text = YokaiText
+    yokaiTextBox.TextColor3 = Color3.fromRGB(230, 230, 240)
+    yokaiTextBox.TextSize = 11
+    yokaiTextBox.Font = Enum.Font.Gotham
+    yokaiTextBox.PlaceholderText = "글자 입력..."
+    yokaiTextBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 130)
+    yokaiTextBox.ClearTextOnFocus = false
+    yokaiTextBox.Parent = yokaiTextRow
+
+    local ybStroke = Instance.new("UIStroke")
+    ybStroke.Color = Color3.fromRGB(60, 60, 70)
+    ybStroke.Thickness = 1
+    ybStroke.Parent = yokaiTextBox
+
+    yokaiTextBox.FocusLost:Connect(function()
+        YokaiText = yokaiTextBox.Text
+        if YokaiTextLabel then
+            YokaiTextLabel.Text = YokaiText
+        end
+    end)
+
+    local sec2 = createSection("레이지 인디케이터", 210)
+
+    createToggle(sec2, "인디케이터 표시", true, function(on)
+        _G.JikaiRage.showIndicator = on
+        if RageEnabled then
+            indicatorGui.Enabled = on
+        end
+    end)
+
+    local textBoxRow = Instance.new("Frame")
+    textBoxRow.Size = UDim2.new(1, 0, 0, 22)
+    textBoxRow.BackgroundTransparency = 1
+    textBoxRow.Parent = sec2
+
+    local textBoxLabel = Instance.new("TextLabel")
+    textBoxLabel.Size = UDim2.new(0.35, 0, 1, 0)
+    textBoxLabel.BackgroundTransparency = 1
+    textBoxLabel.Text = "글자:"
+    textBoxLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
+    textBoxLabel.TextSize = 11
+    textBoxLabel.Font = Enum.Font.Gotham
+    textBoxLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textBoxLabel.Parent = textBoxRow
+
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(0.65, 0, 1, 0)
+    textBox.Position = UDim2.new(0.35, 0, 0, 0)
+    textBox.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    textBox.BorderSizePixel = 0
+    textBox.Text = _G.JikaiRage.text
+    textBox.TextColor3 = Color3.fromRGB(230, 230, 240)
+    textBox.TextSize = 11
+    textBox.Font = Enum.Font.Gotham
+    textBox.PlaceholderText = "글자 입력..."
+    textBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 130)
+    textBox.ClearTextOnFocus = false
+    textBox.Parent = textBoxRow
+
+    local tbStroke = Instance.new("UIStroke")
+    tbStroke.Color = Color3.fromRGB(60, 60, 70)
+    tbStroke.Thickness = 1
+    tbStroke.Parent = textBox
+
+    textBox.FocusLost:Connect(function()
+        _G.JikaiRage.text = textBox.Text
+    end)
+
+    createToggle(sec2, "무지개 모드", true, function(on)
+        _G.JikaiRage.rainbow = on
+    end)
+
+    createToggle(sec2, "네온 빛", true, function(on)
+        _G.JikaiRage.neon = on
+    end)
+
+    createSlider(sec2, "투명도", 0, function(v)
+        _G.JikaiRage.transparency = v / 100
+    end)
+
+    createSlider(sec2, "글자 크기", 50, function(v)
+        _G.JikaiRage.textSize = 6 + math.floor(v / 5)
+    end)
+
+    local colorRow = Instance.new("Frame")
+    colorRow.Size = UDim2.new(1, 0, 0, 18)
+    colorRow.BackgroundTransparency = 1
+    colorRow.Parent = sec2
+
+    local colorLabel = Instance.new("TextLabel")
+    colorLabel.Size = UDim2.new(0.7, 0, 1, 0)
+    colorLabel.BackgroundTransparency = 1
+    colorLabel.Text = "단색 (클릭)"
+    colorLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
+    colorLabel.TextSize = 11
+    colorLabel.Font = Enum.Font.Gotham
+    colorLabel.TextXAlignment = Enum.TextXAlignment.Left
+    colorLabel.Parent = colorRow
+
+    local colorBtn = Instance.new("TextButton")
+    colorBtn.Size = UDim2.new(0, 12, 0, 12)
+    colorBtn.Position = UDim2.new(1, -12, 0.5, -6)
+    colorBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    colorBtn.Text = ""
+    colorBtn.BorderSizePixel = 0
+    colorBtn.Parent = colorRow
+
+    local cStroke = Instance.new("UIStroke")
+    cStroke.Color = Color3.fromRGB(40, 40, 50)
+    cStroke.Thickness = 1
+    cStroke.Parent = colorBtn
+
+    local solidColors = {
+        Color3.fromRGB(255, 255, 255), Color3.fromRGB(0, 255, 100),
+        Color3.fromRGB(255, 0, 0), Color3.fromRGB(0, 200, 255),
+        Color3.fromRGB(255, 255, 0), Color3.fromRGB(255, 0, 255),
+    }
+    local colorIdx = 1
+    colorBtn.MouseButton1Click:Connect(function()
+        colorIdx = colorIdx + 1
+        if colorIdx > #solidColors then colorIdx = 1 end
+        colorBtn.BackgroundColor3 = solidColors[colorIdx]
+        _G.JikaiRage.solidColor = solidColors[colorIdx]
+    end)
+end
+
+tabContents[3] = function()
+    local sec1 = createSection("오라 효과", 130)
+
+    createToggle(sec1, "무지개 오라 (몸 + 바닥 + 무기)", false, function(on)
+        if on then startAura() else stopAura() end
+    end)
+
+    createSlider(sec1, "바닥 원 크기", 50, function(v)
+        if auraParts.floorCircle then
+            local size = 4 + (v / 100) * 16
+            auraParts.floorCircle.Size = Vector3.new(0.2, size, size)
+        end
+        if auraParts.floorCircle2 then
+            local size2 = 3 + (v / 100) * 10
+            auraParts.floorCircle2.Size = Vector3.new(0.15, size2, size2)
+        end
+    end)
+
+    createSlider(sec1, "바닥 투명도", 20, function(v)
+        if auraParts.floorCircle then
+            auraParts.floorCircle.Transparency = v / 100
+        end
+        if auraParts.floorCircle2 then
+            auraParts.floorCircle2.Transparency = math.min((v / 100) + 0.1, 1)
+        end
+    end)
+
+    createSlider(sec1, "공전 반경", 50, function(v) end)
+
+    local infoSec = createSection("정보", 55)
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Size = UDim2.new(1, -16, 1, -22)
+    infoLabel.Position = UDim2.new(0, 8, 0, 22)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Text = "무지개 구들이 몸 주변 공전!\n바닥엔 회전하는 무지개 원!\n무기 들면 무기에도 붙어요."
+    infoLabel.TextColor3 = Color3.fromRGB(160, 160, 170)
+    infoLabel.TextSize = 11
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextWrapped = true
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+    infoLabel.Parent = infoSec
+end
+
+tabContents[4] = function()
+    local sec1 = createSection("효과", 140)
+    createToggle(sec1, "섬광탄 효과 제거", false)
+    createToggle(sec1, "연막탄 제거", false)
+    createToggle(sec1, "안개 제거", false, function(on)
+        if on then Lighting.FogEnd = 100000 else Lighting.FogEnd = 1000 end
+    end)
+    createToggle(sec1, "잔디 제거", false)
+    createSlider(sec1, "벽 투명화", 50, function(v) end)
+    createSlider(sec1, "사물 투명화", 50, function(v) end)
+
+    local sec2 = createSection("안개 설정", 180)
+
+    local presetRow = Instance.new("Frame")
+    presetRow.Size = UDim2.new(1, 0, 0, 22)
+    presetRow.BackgroundTransparency = 1
+    presetRow.Parent = sec2
+
+    local presetBtn = Instance.new("TextButton")
+    presetBtn.Size = UDim2.new(1, 0, 1, 0)
+    presetBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 110)
+    presetBtn.Text = "솔릭스 보라 안개 적용"
+    presetBtn.TextColor3 = Color3.fromRGB(230, 200, 255)
+    presetBtn.TextSize = 11
+    presetBtn.Font = Enum.Font.GothamBold
+    presetBtn.BorderSizePixel = 0
+    presetBtn.Parent = presetRow
+
+    local pStroke = Instance.new("UIStroke")
+    pStroke.Color = Color3.fromRGB(120, 60, 180)
+    pStroke.Thickness = 1
+    pStroke.Parent = presetBtn
+
+    presetBtn.MouseButton1Click:Connect(function()
+        Lighting.FogColor = Color3.fromRGB(65, 25, 95)
+        Lighting.FogStart = 0
+        Lighting.FogEnd = 80
+        Lighting.Ambient = Color3.fromRGB(25, 10, 45)
+        Lighting.OutdoorAmbient = Color3.fromRGB(25, 10, 45)
+        Lighting.Brightness = 0.5
+    end)
+
+    createSlider(sec2, "안개 밀도", 0, function(v)
+        Lighting.FogEnd = 10000 - (v / 100) * 10000
+    end)
+    createSlider(sec2, "안개 시작 거리", 0, function(v)
+        Lighting.FogStart = (v / 100) * 5000
+    end)
+
+    local colorRow = Instance.new("Frame")
+    colorRow.Size = UDim2.new(1, 0, 0, 18)
+    colorRow.BackgroundTransparency = 1
+    colorRow.Parent = sec2
+
+    local colorLabel = Instance.new("TextLabel")
+    colorLabel.Size = UDim2.new(0.7, 0, 1, 0)
+    colorLabel.BackgroundTransparency = 1
+    colorLabel.Text = "안개 색깔 (클릭)"
+    colorLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
+    colorLabel.TextSize = 11
+    colorLabel.Font = Enum.Font.Gotham
+    colorLabel.TextXAlignment = Enum.TextXAlignment.Left
+    colorLabel.Parent = colorRow
+
+    local colorBtn = Instance.new("TextButton")
+    colorBtn.Size = UDim2.new(0, 12, 0, 12)
+    colorBtn.Position = UDim2.new(1, -12, 0.5, -6)
+    colorBtn.BackgroundColor3 = Color3.fromRGB(65, 25, 95)
+    colorBtn.Text = ""
+    colorBtn.BorderSizePixel = 0
+    colorBtn.Parent = colorRow
+
+    local cStroke = Instance.new("UIStroke")
+    cStroke.Color = Color3.fromRGB(40, 40, 50)
+    cStroke.Thickness = 1
+    cStroke.Parent = colorBtn
+
+    local colors = {
+        Color3.fromRGB(65, 25, 95), Color3.fromRGB(40, 20, 70),
+        Color3.fromRGB(90, 40, 140), Color3.fromRGB(20, 10, 40),
+        Color3.fromRGB(100, 20, 120), Color3.fromRGB(30, 30, 80),
+        Color3.fromRGB(255, 255, 255), Color3.fromRGB(0, 0, 0),
+        Color3.fromRGB(255, 0, 0), Color3.fromRGB(0, 255, 255),
+    }
+    local colorIndex = 1
+
+    colorBtn.MouseButton1Click:Connect(function()
+        colorIndex = colorIndex + 1
+        if colorIndex > #colors then colorIndex = 1 end
+        colorBtn.BackgroundColor3 = colors[colorIndex]
+        Lighting.FogColor = colors[colorIndex]
+    end)
+end
+
+tabContents[5] = function()
+    local sec1 = createSection("기타", 120)
+    createToggle(sec1, "전체 밝게", false, function(on)
+        Lighting.Brightness = on and 3 or 1
+    end)
+    createToggle(sec1, "무한 점프", false, function(on)
+        _G.InfJump = on
+    end)
+    createSlider(sec1, "이동 속도", 16, function(v) end)
+    createSlider(sec1, "점프 파워", 50, function(v) end)
+end
+
+tabContents[6] = function()
+    local sec1 = createSection("설정 저장", 60)
+
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 22)
+    row.BackgroundTransparency = 1
+    row.Parent = sec1
+
+    local nameBox = Instance.new("TextBox")
+    nameBox.Size = UDim2.new(1, -70, 1, 0)
+    nameBox.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    nameBox.BorderSizePixel = 0
+    nameBox.Text = ""
+    nameBox.PlaceholderText = "설정 이름 입력..."
+    nameBox.TextColor3 = Color3.fromRGB(230, 230, 240)
+    nameBox.TextSize = 11
+    nameBox.Font = Enum.Font.Gotham
+    nameBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 130)
+    nameBox.ClearTextOnFocus = false
+    nameBox.Parent = row
+
+    local nbStroke = Instance.new("UIStroke")
+    nbStroke.Color = Color3.fromRGB(60, 60, 70)
+    nbStroke.Thickness = 1
+    nbStroke.Parent = nameBox
+
+    local addBtn = Instance.new("TextButton")
+    addBtn.Size = UDim2.new(0, 60, 1, 0)
+    addBtn.Position = UDim2.new(1, -60, 0, 0)
+    addBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 200)
+    addBtn.Text = "추가"
+    addBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    addBtn.TextSize = 11
+    addBtn.Font = Enum.Font.GothamBold
+    addBtn.BorderSizePixel = 0
+    addBtn.Parent = row
+
+    local aStroke = Instance.new("UIStroke")
+    aStroke.Color = Color3.fromRGB(0, 180, 255)
+    aStroke.Thickness = 1
+    aStroke.Parent = addBtn
+
+    addBtn.MouseButton1Click:Connect(function()
+        local name = nameBox.Text
+        if name and name ~= "" then
+            local data = {
+                rage = {
+                    text = _G.JikaiRage.text,
+                    transparency = _G.JikaiRage.transparency,
+                    textSize = _G.JikaiRage.textSize,
+                    neon = _G.JikaiRage.neon,
+                    rainbow = _G.JikaiRage.rainbow,
+                    solidColor = _G.JikaiRage.solidColor,
+                    showIndicator = _G.JikaiRage.showIndicator,
+                },
+                yokaiText = YokaiText,
+                lighting = {
+                    FogColor = Lighting.FogColor,
+                    FogStart = Lighting.FogStart,
+                    FogEnd = Lighting.FogEnd,
+                    Ambient = Lighting.Ambient,
+                    OutdoorAmbient = Lighting.OutdoorAmbient,
+                    Brightness = Lighting.Brightness,
+                },
+            }
+            _G.JikaiConfigs[name] = data
+            refreshConfigList()
+            nameBox.Text = ""
+        end
+    end)
+
+    local sec2 = createSection("저장된 설정", 180)
+
+    configListScroll = Instance.new("ScrollingFrame")
+    configListScroll.Size = UDim2.new(1, -16, 1, -28)
+    configListScroll.Position = UDim2.new(0, 8, 0, 24)
+    configListScroll.BackgroundTransparency = 1
+    configListScroll.BorderSizePixel = 0
+    configListScroll.ScrollBarThickness = 3
+    configListScroll.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 90)
+    configListScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    configListScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    configListScroll.Parent = sec2
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 4)
+    listLayout.Parent = configListScroll
+
+    refreshConfigList = function()
+        for _, c in ipairs(configListScroll:GetChildren()) do
+            if c:IsA("TextButton") then c:Destroy() end
+        end
+        for name, data in pairs(_G.JikaiConfigs) do
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, 22)
+            btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+            btn.Text = name
+            btn.TextColor3 = Color3.fromRGB(200, 200, 210)
+            btn.TextSize = 11
+            btn.Font = Enum.Font.Gotham
+            btn.BorderSizePixel = 0
+            btn.Parent = configListScroll
+            local bStroke = Instance.new("UIStroke")
+            bStroke.Color = Color3.fromRGB(60, 60, 70)
+            bStroke.Thickness = 1
+            bStroke.Parent = btn
+            btn.MouseButton1Click:Connect(function()
+                local d = data
+                if d.rage then
+                    _G.JikaiRage.text = d.rage.text
+                    _G.JikaiRage.transparency = d.rage.transparency
+                    _G.JikaiRage.textSize = d.rage.textSize
+                    _G.JikaiRage.neon = d.rage.neon
+                    _G.JikaiRage.rainbow = d.rage.rainbow
+                    _G.JikaiRage.solidColor = d.rage.solidColor
+                    _G.JikaiRage.showIndicator = d.rage.showIndicator
+                end
+                if d.yokaiText and YokaiTextLabel then
+                    YokaiText = d.yokaiText
+                    YokaiTextLabel.Text = YokaiText
+                end
+                if d.lighting then
+                    for k, v in pairs(d.lighting) do
+                        pcall(function() Lighting[k] = v end)
+                    end
+                end
+            end)
+        end
+    end
+    refreshConfigList()
+end
+
+local currentTab = 1
+
+local function switchTab(index)
+    currentTab = index
+    for _, c in ipairs(scroll:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    for i, btn in ipairs(sideButtons) do
+        btn.BackgroundColor3 = (i == index) and Color3.fromRGB(40, 40, 50) or Color3.fromRGB(20, 20, 25)
+    end
+    if tabContents[index] then tabContents[index]() end
+end
+
+for i, btn in ipairs(sideButtons) do
+    btn.MouseButton1Click:Connect(function() switchTab(i) end)
+end
+
+switchTab(1)
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 130, 0, 30)
+toggleBtn.Position = UDim2.new(0, 20, 0, 50)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+toggleBtn.Text = "script jikai"
+toggleBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+toggleBtn.TextSize = 13
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Parent = gui
+
+local btnStroke = Instance.new("UIStroke")
+btnStroke.Color = Color3.fromRGB(60, 60, 70)
+btnStroke.Thickness = 1
+btnStroke.Parent = toggleBtn
+
+local isOpen = false
+toggleBtn.MouseButton1Click:Connect(function()
+    isOpen = not isOpen
+    main.Visible = isOpen
+    toggleBtn.Text = isOpen and "script jikai (켜짐)" or "script jikai"
+end)
+
+local dragging, dragStart, startPos
+toggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = toggleBtn.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        toggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+local infoBar = Instance.new("Frame")
+infoBar.Size = UDim2.new(0, 220, 0, 22)
+infoBar.Position = UDim2.new(0.5, -110, 1, -30)
+infoBar.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+infoBar.BorderSizePixel = 0
+infoBar.Parent = gui
+
+local infoStroke = Instance.new("UIStroke")
+infoStroke.Color = Color3.fromRGB(45, 45, 50)
+infoStroke.Thickness = 1
+infoStroke.Parent = infoBar
+
+local jikaiLabel = Instance.new("TextLabel")
+jikaiLabel.Size = UDim2.new(0, 40, 1, 0)
+jikaiLabel.Position = UDim2.new(0, 8, 0, 0)
+jikaiLabel.BackgroundTransparency = 1
+jikaiLabel.Text = "jikai"
+jikaiLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+jikaiLabel.TextSize = 11
+jikaiLabel.Font = Enum.Font.GothamBold
+jikaiLabel.TextXAlignment = Enum.TextXAlignment.Left
+jikaiLabel.Parent = infoBar
+
+local senseLabel = Instance.new("TextLabel")
+senseLabel.Size = UDim2.new(0, 45, 1, 0)
+senseLabel.Position = UDim2.new(0, 44, 0, 0)
+senseLabel.BackgroundTransparency = 1
+senseLabel.Text = "sense"
+senseLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+senseLabel.TextSize = 11
+senseLabel.Font = Enum.Font.GothamBold
+senseLabel.TextXAlignment = Enum.TextXAlignment.Left
+senseLabel.Parent = infoBar
+
+local infoLabel = Instance.new("TextLabel")
+infoLabel.Size = UDim2.new(1, -100, 1, 0)
+infoLabel.Position = UDim2.new(0, 95, 0, 0)
+infoLabel.BackgroundTransparency = 1
+infoLabel.Text = "CPU: 0ms | --:--:--"
+infoLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+infoLabel.TextSize = 10
+infoLabel.Font = Enum.Font.Gotham
+infoLabel.TextXAlignment = Enum.TextXAlignment.Right
+infoLabel.Parent = infoBar
+
+local lastFrameTime = tick()
+RunService.RenderStepped:Connect(function()
+    local now = tick()
+    local deltaTime = now - lastFrameTime
+    lastFrameTime = now
+    local cpuMs = math.floor(deltaTime * 1000)
+    
+    local t = os.date("*t")
+    local hour = t.hour
+    local min = t.min
+    local sec = t.sec
+    local ampm = (hour < 12) and "오전" or "오후"
+    if hour == 0 then hour = 12 elseif hour > 12 then hour = hour - 12 end
+    
+    infoLabel.Text = string.format("CPU: %dms | %s %02d:%02d:%02d", cpuMs, ampm, hour, min, sec)
+end)
+
+print("script jikai 로드 완료! (콘픽 기능 추가)")
